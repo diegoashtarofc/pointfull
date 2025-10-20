@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pointfull - Registro de Ponto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 1. TONE.JS PARA EFEITO SONORO DE INTRODUÇÃO -->
+    <script src="https://unpkg.com/tone"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'glass-dark': '#0F172A', 
+                        'primary-accent': '#FF4D4D', // Soft Bright Red (Brighter for Pointfull)
+                        'secondary-accent': '#4FC3F7', // Cyan/Blue for Manual/Logo
+                        'glass-border': 'rgba(255, 255, 255, 0.25)', 
+                        'goal-red': '#EF4444', 
+                        'goal-yellow': '#F59E0B', 
+                        'goal-orange': '#F97316', 
+                        'goal-blue': '#3B82F6', 
+                        'goal-green': '#10B981', 
+                    },
+                    borderRadius: {
+                        'xl': '1.5rem',
+                        '2xl': '2rem',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        
+        /* 1. Custom Dark Background with Subtle Gradient */
+        .app-background {
+            background: linear-gradient(135deg, #101827 0%, #050A10 100%);
+        }
+
+        /* 2. Glassmorphism Effect (Mais nítido) */
+        .glass {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%);
+            border: 1px solid theme('colors.glass-border');
+            backdrop-filter: blur(20px); 
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 2rem; 
+            box-shadow: 0 20px 80px 0 rgba(0, 0, 0, 0.6); /* Sombra mais profunda */
+        }
+        
+        /* 3. Button Gradient/Neon (Liquid Glass Colorido) */
+        .btn-base {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: none;
+            position: relative;
+            overflow: hidden;
+            font-weight: 700;
+            /* Adicionando o efeito Liquid Glass nos botões */
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-base:hover {
+            transform: translateY(-4px); /* Elevação maior no hover */
+        }
+        .btn-base:hover:not(:disabled) {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Cores Liquid Glass Translucidas */
+        .btn-in {
+            background: linear-gradient(135deg, rgba(72, 187, 120, 0.9) 0%, rgba(47, 133, 90, 0.7) 100%);
+        }
+        .btn-in:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(72, 187, 120, 0.8); 
+        }
+
+        .btn-out {
+            background: linear-gradient(135deg, rgba(255, 77, 77, 0.9) 0%, rgba(197, 48, 48, 0.7) 100%);
+        }
+        .btn-out:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(255, 77, 77, 0.8); 
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, rgba(236, 201, 75, 0.9) 0%, rgba(214, 158, 46, 0.7) 100%);
+            color: #1A202C;
+        }
+        .btn-pause:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(236, 201, 75, 0.8); 
+        }
+
+        .btn-secondary {
+             background: linear-gradient(135deg, rgba(79, 195, 247, 0.9) 0%, rgba(3, 169, 244, 0.7) 100%); 
+        }
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(79, 195, 247, 0.8); 
+        }
+        
+        .btn-standard {
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.9) 0%, rgba(109, 40, 217, 0.7) 100%); /* Cor Roxa */
+        }
+        .btn-standard:hover:not(:disabled) {
+            box-shadow: 0 0 25px rgba(147, 51, 234, 0.8); 
+        }
+
+        /* Tabela Aprimorada */
+        .record-row:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Modal Styles */
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        /* --- ESTILOS DA INTRODUÇÃO (SPLASH SCREEN) --- */
+        #splash-screen {
+            background-color: rgba(0, 0, 0, 0.95); /* Liquid Glass Opaco */
+            opacity: 1;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out; /* Transição mais rápida */
+            pointer-events: all;
+        }
+        
+        .splash-content-icon {
+            /* Animação aplicada ao container do ícone: rotação + pulso */
+            animation: spin-pulse 2s infinite ease-in-out; 
+        }
+
+        /* Efeito de brilho/glow aplicado ao ícone SVG */
+        #loading-icon {
+            filter: drop-shadow(0 0 8px rgba(79, 195, 247, 0.6)) drop-shadow(0 0 4px rgba(255, 77, 77, 0.4));
+        }
+        
+        /* KEYFRAMES PARA O EFEITO DE CARREGAMENTO PULSANTE E ROTAÇÃO */
+        @keyframes spin-pulse {
+            0% {
+                opacity: 0.8;
+                transform: scale(0.95) rotate(0deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05) rotate(180deg);
+            }
+            100% {
+                opacity: 0.8;
+                transform: scale(0.95) rotate(360deg);
+            }
+        }
+        /* --- FIM DOS ESTILOS DA INTRODUÇÃO --- */
+
+        /* --- ESTILOS DE CONFETES --- */
+        #confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 1000;
+        }
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 15px;
+            background-color: #f00;
+            opacity: 0;
+            animation: confetti-fall 2s ease-out forwards;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0.5; }
+        }
+        /* --- FIM ESTILOS DE CONFETES --- */
+    </style>
+</head>
+<body class="app-background font-sans min-h-screen p-4 flex flex-col items-center text-white">
+
+    <!-- SPLASH SCREEN DE INTRODUÇÃO (Apenas o ícone como carregador) -->
+    <div id="splash-screen" class="fixed inset-0 bg-black flex items-center justify-center z-[100] transition-opacity duration-1000">
+        <div class="flex items-center justify-center splash-content-icon">
+             <svg id="loading-icon" xmlns="http://www.w3.org/2000/svg" class="w-28 h-28 text-secondary-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+        </div>
+    </div>
+
+    <!-- CONTÊINER DE CONFETES -->
+    <div id="confetti-container"></div>
+    
+    <!-- O CONTEÚDO PRINCIPAL DO APP -->
+
+    <div class="max-w-4xl w-full">
+
+        <!-- Header e Controles de Ponto (Glassmorphism) -->
+        <header class="glass p-6 rounded-2xl mb-4">
+            
+            <!-- Logo e Título -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/23/2000/svg" class="w-10 h-10 mr-3 text-secondary-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <circle cx="12" cy="12" r="6"></circle>
+                        <circle cx="12" cy="12" r="2"></circle>
+                    </svg>
+                    <h1 class="text-5xl font-extrabold text-white">Point<span class="text-primary-accent">full</span></h1>
+                </div>
+                
+                <!-- Botão Calendário REMOVIDO DAQUI -->
+            </div>
+            
+            <p class="text-gray-400 mb-4 text-lg border-b border-gray-700 pb-4">Gerencie seu dia com precisão e controle total sobre seus registros.</p>
+
+            <!-- Status do Dia -->
+            <div id="status-display" class="bg-black bg-opacity-30 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between font-bold border border-glass-border">
+                <div class="mb-2 sm:mb-0">
+                    <span id="current-date-time" class="block text-xl">--/--/-- | --:--:--</span>
+                    <span class="text-xs text-gray-400">Data e Hora Atual</span>
+                </div>
+                <span id="current-status" class="px-3 py-1 rounded-full text-white text-sm bg-gray-500 font-semibold tracking-wider">Aguardando...</span>
+            </div>
+
+            <!-- Botões de Ação Rápida (HOJE) -->
+            <h3 class="text-white text-xl font-semibold mt-6 mb-3 border-b border-gray-700 pb-1">Ações Rápidas (Hoje)</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <button id="btn-clock-in" onclick="recordEntryQuick('Entrada')"
+                    class="btn-base btn-in w-full py-3 px-3 text-white text-md rounded-xl disabled:opacity-30 disabled:shadow-none"
+                    disabled>
+                    Entrada
+                </button>
+                <button id="btn-pause-start" onclick="recordEntryQuick('Pausa Início')"
+                    class="btn-base btn-pause w-full py-3 px-3 text-md rounded-xl disabled:opacity-30 disabled:shadow-none"
+                    disabled>
+                    Iniciar Pausa
+                </button>
+                <button id="btn-pause-end" onclick="recordEntryQuick('Pausa Fim')"
+                    class="btn-base btn-pause w-full py-3 px-3 text-md rounded-xl disabled:opacity-30 disabled:shadow-none"
+                    disabled>
+                    Finalizar Pausa
+                </button>
+                <button id="btn-clock-out" onclick="recordEntryQuick('Saída')"
+                    class="btn-base btn-out w-full py-3 px-3 text-white text-md rounded-xl disabled:opacity-30 disabled:shadow-none"
+                    disabled>
+                    Saída
+                </button>
+                <button id="btn-standard-day-quick" onclick="addStandardDayQuick()"
+                    class="btn-base btn-standard w-full py-3 px-3 text-white text-md rounded-xl disabled:opacity-30 disabled:shadow-none">
+                    Dia Padrão (8-15h)
+                </button>
+            </div>
+            
+            <p id="message-box" class="mt-4 text-sm text-secondary-accent text-center font-medium"></p>
+        </header>
+
+        <!-- Seção de Adição Manual e Ajustes por Data -->
+        <div class="glass p-6 rounded-2xl mb-4">
+            <h2 class="text-3xl font-bold text-secondary-accent mb-4 border-b border-gray-600 pb-2">Ajustes e Adição por Data</h2>
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <input type="date" id="manual-date-picker" onchange="updateManualActions()"
+                    class="w-full sm:w-1/4 p-3 bg-white bg-opacity-10 rounded-xl border border-gray-600 focus:ring-primary-accent focus:border-primary-accent text-white" />
+                
+                <button id="btn-manual-add-entry" onclick="openTimeInputModal('Entrada')"
+                    class="btn-base btn-in w-full sm:w-1/5 py-2 px-3 text-white text-sm rounded-xl disabled:opacity-30"
+                    disabled>
+                    + Entrada
+                </button>
+                <button id="btn-manual-add-pause" onclick="openTimeInputModal('Pausa')"
+                    class="btn-base btn-pause w-full sm:w-1/5 py-2 px-3 text-sm rounded-xl disabled:opacity-30"
+                    disabled>
+                    + Pausa
+                </button>
+                <button id="btn-manual-add-exit" onclick="openTimeInputModal('Saída')"
+                    class="btn-base btn-out w-full sm:w-1/5 py-2 px-3 text-white text-sm rounded-xl disabled:opacity-30"
+                    disabled>
+                    + Saída
+                </button>
+                <button id="btn-manual-add-standard" onclick="addStandardDayManual()"
+                    class="btn-base btn-standard w-full sm:w-1/5 py-2 px-3 text-white text-sm rounded-xl disabled:opacity-30"
+                    disabled>
+                    Dia Padrão
+                </button>
+            </div>
+        </div>
+        
+        <!-- Cartão de Resumo do Banco de Horas (AGORA COM BOTÃO CALENDÁRIO) -->
+        <div id="summary-card" class="glass p-6 rounded-2xl mb-4 text-white">
+            <p class="text-gray-400">Calculando Banco de Horas...</p>
+        </div>
+
+        <!-- Histórico e Exportação (Glassmorphism) -->
+        <div class="glass p-6 rounded-2xl border-t-0">
+            <h2 class="text-3xl font-bold text-white mb-4 border-b border-gray-600 pb-2">Histórico Completo</h2>
+
+            <div class="flex justify-end mb-4">
+                <button onclick="openExportModal()"
+                    class="py-2 px-4 bg-secondary-accent hover:bg-sky-400 text-glass-dark font-semibold rounded-lg transition duration-200 flex items-center hover:scale-[1.02] focus:ring-4 focus:ring-secondary-accent/50">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Opções de Exportação
+                </button>
+            </div>
+
+            <!-- Tabela Estilizada -->
+            <div class="overflow-x-auto bg-black bg-opacity-20 rounded-xl p-2">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-black bg-opacity-40">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider rounded-tl-xl">Data</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-300 uppercase tracking-wider">Registros</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-gray-300 uppercase tracking-wider">Trabalhado</th>
+                            <th class="px-4 py-3 text-right text-xs font-bold text-gray-300 uppercase tracking-wider rounded-tr-xl">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-table-body" class="divide-y divide-gray-700">
+                        <!-- Conteúdo JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 1: Adicionar Hora (para entrada manual) -->
+    <div id="time-input-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="glass p-8 rounded-2xl w-full max-w-md">
+            <h3 class="text-2xl font-bold text-white mb-4 border-b border-gray-600 pb-2"><span id="time-input-title">Adicionar Registro</span></h3>
+            <p id="time-input-date-display" class="text-gray-400 mb-4 text-sm"></p>
+            <form onsubmit="handleTimeInput(event)">
+                <input type="hidden" id="time-input-type" value="">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Horário Exato</label>
+                    <input type="time" id="time-input-field" required class="w-full p-3 bg-white bg-opacity-10 rounded-lg border border-gray-600 focus:ring-primary-accent focus:border-primary-accent text-white" />
+                </div>
+                
+                <div class="flex justify-between mt-6">
+                    <button type="button" onclick="closeTimeInputModal()" class="py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition">Cancelar</button>
+                    <button type="submit" class="py-2 px-4 bg-secondary-accent hover:bg-sky-400 text-glass-dark font-semibold rounded-xl transition">Adicionar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Detalhes e Edição/Exclusão do Dia -->
+    <div id="details-modal" data-date="" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="glass p-8 rounded-2xl w-full max-w-lg">
+            <h3 class="text-2xl font-bold text-secondary-accent mb-4 border-b border-gray-600 pb-2">Ajustar Movimentos do Dia: <span id="details-modal-date"></span></h3>
+            
+            <div id="details-modal-content" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <!-- Registros detalhados serão injetados aqui -->
+            </div>
+            
+            <div class="flex justify-between mt-6 border-t border-gray-700 pt-4">
+                <button type="button" onclick="deleteAllDayRecordsPrompt(document.getElementById('details-modal').dataset.date)"
+                    class="py-2 px-4 btn-base btn-out text-white font-semibold rounded-xl transition">
+                    Excluir TODOS os Registros do Dia
+                </button>
+                <button type="button" onclick="closeDetailsModal()" class="py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Edição de Registro (Data e Hora) -->
+    <div id="edit-record-modal" class="modal fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="glass p-8 rounded-2xl w-full max-w-md">
+            <h3 class="text-2xl font-bold text-primary-accent mb-4 border-b border-gray-600 pb-2">Editar Registro</h3>
+            <form onsubmit="handleEditRecord(event)">
+                <input type="hidden" id="edit-original-timestamp" value="">
+                <input type="hidden" id="edit-record-date" value="">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Tipo de Registro</label>
+                    <select id="edit-type" required class="w-full p-3 bg-white bg-opacity-10 rounded-lg border border-gray-600 focus:ring-secondary-accent focus:border-secondary-accent text-white">
+                        <option value="Entrada" class="bg-glass-dark text-white">Entrada</option>
+                        <option value="Pausa Início" class="bg-glass-dark text-white">Pausa Início</option>
+                        <option value="Pausa Fim" class="bg-glass-dark text-white">Pausa Fim</option>
+                        <option value="Saída" class="bg-glass-dark text-white">Saída</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Data e Hora (Ajuste)</label>
+                    <input type="datetime-local" id="edit-datetime" required class="w-full p-3 bg-white bg-opacity-10 rounded-lg border border-gray-600 focus:ring-secondary-accent focus:border-secondary-accent text-white" />
+                </div>
+                <div class="flex justify-between mt-6">
+                    <button type="button" onclick="closeEditRecordModal()" class="py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition">Cancelar</button>
+                    <button type="submit" class="py-2 px-4 btn-base btn-secondary text-white font-semibold rounded-xl transition">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 4: Exportação -->
+    <div id="export-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="glass p-8 rounded-2xl w-full max-w-md text-center">
+            <h3 class="text-2xl font-bold text-secondary-accent mb-4 border-b border-gray-600 pb-2">Selecione o Formato de Exportação</h3>
+            <p class="mb-6 text-gray-300">Escolha o formato ideal para sua planilha ou relatório.</p>
+            <div class="grid grid-cols-3 gap-4">
+                <button onclick="exportToCSVAndClose()" class="btn-base py-4 px-3 text-lg font-bold rounded-xl btn-pause hover:scale-[1.05]">
+                    Planilha CSV (Excel)
+                </button>
+                <button onclick="generatePDFReportAndClose()" class="btn-base py-4 px-3 text-white text-lg font-bold rounded-xl btn-secondary hover:scale-[1.05]">
+                    Relatório PDF (Estilizado)
+                </button>
+                <button onclick="exportToRTFAndClose()" class="btn-base py-4 px-3 text-white text-lg font-bold rounded-xl btn-in hover:scale-[1.05]">
+                    Relatório DOC (Word/RTF)
+                </button>
+            </div>
+            <button type="button" onclick="closeExportModal()" class="mt-6 py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition">Fechar</button>
+        </div>
+    </div>
+    
+    <!-- Modal 5: Calendário -->
+    <div id="calendar-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="glass p-8 rounded-2xl w-full max-w-3xl">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-600 pb-2">
+                <h3 class="text-2xl font-bold text-secondary-accent">Visualização Mensal</h3>
+                <button onclick="closeCalendarModal()" class="text-white hover:text-primary-accent transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Controles de Navegação do Mês -->
+            <div class="flex justify-between items-center mb-6">
+                <button onclick="changeCalendarMonth(-1)" class="p-2 rounded-full bg-black bg-opacity-30 hover:bg-opacity-50 transition">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h4 id="calendar-month-display" class="text-3xl font-bold text-white">Mês Ano</h4>
+                <button onclick="changeCalendarMonth(1)" class="p-2 rounded-full bg-black bg-opacity-30 hover:bg-opacity-50 transition">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+
+            <!-- Container do Calendário -->
+            <div class="grid grid-cols-7 text-center font-bold text-sm mb-2 text-gray-400">
+                <span>Dom</span>
+                <span>Seg</span>
+                <span>Ter</span>
+                <span>Qua</span>
+                <span>Qui</span>
+                <span>Sex</span>
+                <span>Sáb</span>
+            </div>
+            <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                <!-- Dias do calendário serão injetados aqui -->
+            </div>
+            
+            <div class="mt-6 border-t border-gray-700 pt-4">
+                <p class="text-sm text-gray-400">Legenda:</p>
+                <div class="flex flex-wrap gap-4 mt-2 text-xs">
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-700 mr-2"></span> Meta Diária (6h) Atingida</span>
+                    <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-primary-accent mr-2"></span> Déficit (< 6h)</span>
+                    <span class="flex items-center"><span class="w-3 h-3 mr-2">📅</span> Feriado</span>
+                    <span class="flex items-center"><span class="w-3 h-3 mr-2">☕</span> Pausa não registrada</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal 6: Transição Mensal / Relatório -->
+    <div id="monthly-report-modal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="glass p-8 rounded-2xl w-full max-w-md">
+            <h3 class="text-2xl font-bold text-primary-accent mb-4 border-b border-gray-600 pb-2">Fim do Mês!</h3>
+            <p id="monthly-report-message" class="text-white mb-6">O mês anterior foi encerrado. Gostaria de gerar o relatório de registro de ponto antes de reiniciar as metas?</p>
+            <div class="flex justify-between mt-6">
+                <button type="button" onclick="handleMonthlyReportSkip()" class="py-2 px-4 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl transition">Pular e Reiniciar</button>
+                <button type="button" onclick="handleMonthlyReportGenerate()" class="py-2 px-4 btn-base btn-secondary text-white font-semibold rounded-xl transition">Gerar Relatório & Reiniciar Metas</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, query, orderBy, runTransaction, Timestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- GLOBAL SETUP ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // FIX: Apenas armazena a string do token. Não chame funções que dependem de 'auth' aqui.
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
+
+        let db, auth, userId = null;
+        let isAuthReady = false;
+        let dailyRecordsCache = {}; 
+        let currentDayRecords = {}; 
+        let selectedDate = getTodayDateString(); 
+        
+        // NOVO: Rastreamento de Metas Atingidas para Confetes (Persistido no sessionStorage)
+        let achievedGoals = JSON.parse(sessionStorage.getItem('achievedGoals')) || {
+            '30h': false,
+            '60h': false,
+            '90h': false,
+            '120h': false
+        };
+
+        // NOVO: Estado do Calendário
+        let currentCalendarDate = new Date();
+        
+        // --- CONSTANTES DE CÁLCULO DE HORAS (em milissegundos) ---
+        const DAILY_GOAL_MS = 6 * 60 * 60 * 1000; // 6 horas
+        const WEEKLY_GOAL_MS = 30 * 60 * 60 * 1000; // 30 horas
+        const MONTHLY_GOAL_MS = 120 * 60 * 60 * 1000; // 120 horas (4 semanas * 30h)
+        const DAILY_BH_THRESHOLD_MS = DAILY_GOAL_MS; // BH é o superávit/déficit em relação a 6h.
+        const DAILY_TOLERANCE_MS = 30 * 60 * 1000; // 30 minutos (Referência)
+        // --------------------------------------------------------
+
+        // Lista de Feriados Nacionais (YYYY-MM-DD). Usei 2025/2026 como base.
+        const HOLIDAYS = [
+            '2025-01-01', // Confraternização Universal
+            '2025-03-03', // Carnaval (Segunda)
+            '2025-03-04', // Carnaval (Terça)
+            '2025-04-18', // Sexta-feira Santa
+            '2025-04-21', // Tiradentes
+            '2025-05-01', // Dia do Trabalho
+            '2025-06-19', // Corpus Christi
+            '2025-09-07', // Independência do Brasil
+            '2025-10-12', // Nossa Senhora Aparecida
+            '2025-11-02', // Finados
+            '2025-11-15', // Proclamação da República
+            '2025-12-25', // Natal
+            
+            // Feriados 2026 (Exemplo para cobrir um período maior)
+            '2026-01-01',
+            '2026-02-16', // Carnaval (Segunda)
+            '2026-02-17', // Carnaval (Terça)
+            '2026-04-03', // Sexta-feira Santa
+            '2026-04-21',
+            '2026-05-01',
+            '2026-06-04', // Corpus Christi
+            '2026-09-07',
+            '2026-10-12',
+            '2026-11-02',
+            '2026-11-15',
+            '2026-12-25',
+        ];
+
+        // Expose functions globally
+        window.recordEntryQuick = recordEntryQuick;
+        window.openDetailsModal = openDetailsModal;
+        window.openTimeInputModal = openTimeInputModal;
+        window.closeDetailsModal = closeDetailsModal;
+        window.closeTimeInputModal = closeTimeInputModal;
+        window.openEditRecordModal = openEditRecordModal;
+        window.closeEditRecordModal = closeEditRecordModal;
+        window.handleTimeInput = handleTimeInput;
+        window.handleEditRecord = handleEditRecord;
+        window.deleteRecord = deleteRecord;
+        window.deleteAllDayRecordsPrompt = deleteAllDayRecordsPrompt;
+        window.updateManualActions = updateManualActions;
+        window.openExportModal = openExportModal;
+        window.closeExportModal = closeExportModal;
+        window.exportToCSVAndClose = exportToCSVAndClose;
+        window.generatePDFReportAndClose = generatePDFReportAndClose;
+        window.exportToRTFAndClose = exportToRTFAndClose;
+        window.addStandardDayQuick = addStandardDayQuick; // Novo
+        window.addStandardDayManual = addStandardDayManual; // Novo
+        
+        // Funções do Calendário
+        window.openCalendarModal = openCalendarModal;
+        window.closeCalendarModal = closeCalendarModal;
+        window.changeCalendarMonth = changeCalendarMonth;
+        
+        // Funções de Transição Mensal
+        window.handleMonthlyReportGenerate = handleMonthlyReportGenerate;
+        window.handleMonthlyReportSkip = handleMonthlyReportSkip;
+
+
+        // --- UTILITY FUNCTIONS ---
+        
+        // --- FUNÇÕES DE INTRODUÇÃO ---
+        function playChime() {
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start(); 
+                }
+                const synth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: {
+                        attack: 0.005,
+                        decay: 0.2,
+                        sustain: 0.1,
+                        release: 0.5,
+                    }
+                }).toDestination();
+                
+                synth.triggerAttackRelease("C5", "8n", Tone.now());
+                synth.triggerAttackRelease("E5", "8n", Tone.now() + 0.1);
+                synth.triggerAttackRelease("G5", "4n", Tone.now() + 0.2);
+            } catch (e) {
+                console.warn("Tone.js failed to start or play chime:", e);
+            }
+        }
+
+        function handleInitializationComplete() {
+            const splash = document.getElementById('splash-screen');
+            if (!splash) return;
+
+            playChime();
+
+            setTimeout(() => {
+                splash.style.opacity = 0;
+                setTimeout(() => splash.remove(), 500); 
+            }, 500); 
+        }
+        // --- FIM DAS FUNÇÕES DE INTRODUÇÃO ---
+        
+        // NOVO: Função para gerar cofetes e som de prêmio
+        function showConfettiAndReward(goal) {
+            // Persiste o estado da conquista
+            sessionStorage.setItem('achievedGoals', JSON.stringify(achievedGoals));
+            
+            try {
+                // Toca som de conquista
+                if (Tone.context.state !== 'running') {
+                    Tone.start(); 
+                }
+                const synth = new Tone.Synth().toDestination();
+                synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "0.5", Tone.now(), 0.8);
+                
+            } catch (e) {
+                console.warn("Tone.js failed to play reward sound:", e);
+            }
+
+            const container = document.getElementById('confetti-container');
+            const colors = ['#FF4D4D', '#4FC3F7', '#10B981', '#F59E0B', '#FFFFFF'];
+            
+            // Mensagem de conquista
+            showMessage(`CONQUISTA: Meta de ${goal} horas atingida! 🚀`, false);
+
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`;
+                confetti.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
+                container.appendChild(confetti);
+
+                // Remove o confete após a animação
+                confetti.addEventListener('animationend', () => {
+                    confetti.remove();
+                });
+            }
+        }
+        
+        // NOVO: Função para obter o próximo dia útil
+        function getNextWorkingDay(currentDateString) {
+            let nextDate = new Date(currentDateString + 'T12:00:00');
+            nextDate.setDate(nextDate.getDate() + 1);
+            let nextDateString = getTodayDateString(nextDate);
+            
+            // Loop até encontrar um dia que não seja fim de semana nem feriado
+            while (isNonWorkingDay(nextDateString)) {
+                nextDate.setDate(nextDate.getDate() + 1);
+                nextDateString = getTodayDateString(nextDate);
+            }
+            return nextDateString;
+        }
+
+
+        function isNonWorkingDay(dateString) {
+            const date = new Date(dateString + 'T12:00:00'); // Use 12:00 UTC para evitar problemas de fuso horário
+            const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            // 1. Fim de Semana
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                return 'Fim de Semana';
+            }
+            
+            // 2. Feriado
+            if (HOLIDAYS.includes(dateString)) {
+                return 'Feriado Nacional';
+            }
+            
+            return null; // É dia útil
+        }
+
+
+        function showMessage(msg, isError = false) {
+            const box = document.getElementById('message-box');
+            box.textContent = msg;
+            box.className = `mt-4 text-sm text-center font-medium ${isError ? 'text-primary-accent' : 'text-secondary-accent'}`;
+        }
+
+        function getTodayDateString(date = new Date()) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+        }
+        
+        function formatTime(timestamp) {
+            if (!timestamp || !(timestamp instanceof Timestamp)) return '--:--';
+            return new Date(timestamp.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        
+        function formatTimeInput(timestamp) {
+            if (!timestamp || !(timestamp instanceof Timestamp)) return '00:00';
+            const date = new Date(timestamp.seconds * 1000);
+            return date.toTimeString().slice(0, 5);
+        }
+        
+        function formatDateTimeLocal(timestamp) {
+            if (!timestamp || !(timestamp instanceof Timestamp)) return '';
+            const date = new Date(timestamp.seconds * 1000);
+            // Must be YYYY-MM-DDTHH:MM
+            return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+        }
+
+        function formatRecordTime(timestamp) {
+            if (!timestamp || !(timestamp instanceof Timestamp)) return '';
+            return new Date(timestamp.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function getBrazilianDateString(dateString) {
+             const [year, month, day] = dateString.split('-').map(Number);
+             const date = new Date(year, month - 1, day);
+             return date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        }
+        
+        function formatMsToDuration(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const sign = totalSeconds < 0 ? "-" : "";
+            const absSeconds = Math.abs(totalSeconds);
+            const hours = Math.floor(absSeconds / 3600); 
+            const minutes = Math.floor((absSeconds % 3600) / 60);
+            
+            if (totalSeconds < 0) {
+                 return `${sign}${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+            } else {
+                 return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+            }
+        }
+        
+        function formatMsToDurationClean(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const sign = totalSeconds < 0 ? "-" : "";
+            const absSeconds = Math.abs(totalSeconds);
+            const hours = Math.floor(absSeconds / 3600); 
+            const minutes = Math.floor((absSeconds % 3600) / 60);
+            
+            return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+        
+        function getWeekNumber(d) {
+            // Copy date so don't modify original
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            // Set to nearest Thursday: current date + 4 - current day number (adjust for Sunday=0)
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            // Get first day of year
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            // Calculate full weeks to nearest Thursday
+            const weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+            // Return array of year and week number
+            return d.getUTCFullYear() + '-' + weekNo;
+        }
+
+
+        // --- TIME CALCULATION LOGIC ---
+
+        function calculateDuration(records) {
+            let totalWorkedMs = 0;
+            let lastInTime = null;
+            let breakStartTime = null;
+
+            const sortedRecords = [...records].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+
+            for (const record of sortedRecords) {
+                const timeMs = record.timestamp.toMillis();
+
+                if (record.type === 'Entrada') {
+                    if (lastInTime === null) { lastInTime = timeMs; }
+                } else if (record.type === 'Pausa Início') {
+                    if (lastInTime !== null && breakStartTime === null) {
+                        totalWorkedMs += timeMs - lastInTime;
+                        breakStartTime = timeMs;
+                        lastInTime = null; 
+                    }
+                } else if (record.type === 'Pausa Fim') {
+                    if (breakStartTime !== null) {
+                        breakStartTime = null;
+                        lastInTime = timeMs;
+                    }
+                } else if (record.type === 'Saída') {
+                    if (lastInTime !== null) {
+                        totalWorkedMs += timeMs - lastInTime;
+                        lastInTime = null; 
+                    }
+                }
+            }
+            
+            // Se ainda estiver em serviço (sem pausa)
+            const isClockedIn = lastInTime !== null;
+            const isBreak = breakStartTime !== null;
+            const lastMovement = sortedRecords.length > 0 ? sortedRecords[sortedRecords.length - 1].type : null;
+            
+            if (isClockedIn) {
+                totalWorkedMs += Date.now() - lastInTime;
+            }
+            
+            const finalWorkedMs = Math.max(0, totalWorkedMs);
+
+            return {
+                totalWorkedMs: finalWorkedMs,
+                durationString: formatMsToDuration(finalWorkedMs),
+                isClockedIn: isClockedIn,
+                isBreak: isBreak,
+                lastMovement: lastMovement,
+            };
+        }
+
+        // --- FIREBASE AND UI RENDERING ---
+
+        async function initializeFirebase() {
+            let authAttempted = false;
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                document.getElementById('manual-date-picker').value = selectedDate;
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        setupTimeDisplay();
+                        setupRecordsListener();
+                    } else if (!authAttempted) {
+                        authAttempted = true;
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                    // CHAMA A FUNÇÃO DE INTRODUÇÃO AQUI
+                    handleInitializationComplete(); 
+                });
+
+            } catch (e) {
+                console.error("Erro ao inicializar Firebase ou autenticar:", e);
+                showMessage("Erro fatal ao carregar o sistema. Recarregue a página.", true);
+                handleInitializationComplete(); // Garantir que a tela de splash seja removida em caso de erro
+            }
+        }
+
+        function setupTimeDisplay() {
+            const updateClock = () => {
+                const now = new Date();
+                const datePart = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const timePart = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                document.getElementById('current-date-time').textContent = `${datePart} | ${timePart}`;
+            };
+            setInterval(updateClock, 1000);
+            updateClock();
+        }
+
+        function setupRecordsListener() {
+            if (!db || !userId) return;
+
+            const recordsRef = collection(db, 'artifacts', appId, 'users', userId, 'time_records');
+            const q = query(recordsRef, orderBy('date', 'desc'));
+
+            onSnapshot(q, (snapshot) => {
+                const allRecords = [];
+                snapshot.forEach((doc) => {
+                    allRecords.push(doc.data());
+                });
+                renderRecordsTable(allRecords);
+                updateManualActions(); 
+                renderCalendar(); // Atualiza o calendário sempre que os dados mudam
+                
+                // --- NOVO: LÓGICA DE TRANSIÇÃO MENSAL ---
+                const todayDateString = getTodayDateString();
+                const currentMonthYear = todayDateString.substring(0, 7); // YYYY-MM
+                const lastReportedMonth = sessionStorage.getItem('lastReportedMonth') || currentMonthYear; // Assume o atual se for o primeiro acesso
+
+                if (lastReportedMonth !== currentMonthYear) {
+                     // Encontramos uma mudança de mês.
+                     const previousMonthYear = lastReportedMonth;
+                     
+                     // Abrimos o modal apenas se o mês anterior for realmente anterior.
+                     if (previousMonthYear < currentMonthYear) {
+                        // Salva o mês anterior para uso no relatório
+                        sessionStorage.setItem('previousMonthYear', previousMonthYear);
+                        openMonthlyReportModal(previousMonthYear);
+                     }
+                }
+                // --- AQUI NÃO ATUALIZAMOS O lastReportedMonth, ele é atualizado no skip/generate ---
+                // --- FIM DA LÓGICA DE TRANSIÇÃO MENSAL ---
+                
+            }, (error) => {
+                console.error("Erro ao ouvir registros:", error);
+                showMessage("Erro ao carregar dados do histórico.", true);
+            });
+        }
+        
+        function updateManualActions() {
+            selectedDate = document.getElementById('manual-date-picker').value || getTodayDateString();
+            
+            const nonWorkingReason = isNonWorkingDay(selectedDate);
+            let enableManualAdd = !!selectedDate && !nonWorkingReason;
+            
+            // NOVO: Verifica registros existentes para desabilitar botões
+            const dayData = dailyRecordsCache[selectedDate]; // Objeto pode ser undefined se o dia nunca foi registrado
+            const existingTypes = dayData ? new Set(dayData.records.map(r => r.type)) : new Set();
+            
+            const canAddEntrada = enableManualAdd && !existingTypes.has('Entrada');
+            const canAddPausaInicio = enableManualAdd && !existingTypes.has('Pausa Início');
+            const canAddPausaFim = enableManualAdd && !existingTypes.has('Pausa Fim');
+            const canAddSaida = enableManualAdd && !existingTypes.has('Saída');
+            
+            // Regra para Pausa: Só pode iniciar se não tiver iniciado e só pode finalizar se tiver iniciado.
+            const isBreakStarted = existingTypes.has('Pausa Início');
+            const isBreakFinished = existingTypes.has('Pausa Fim');
+            
+            const canAddPausaButton = enableManualAdd && (
+                (canAddPausaInicio && !isBreakStarted) || (isBreakStarted && canAddPausaFim)
+            );
+            
+            // Regras de desativação dos botões manuais
+            document.getElementById('btn-manual-add-entry').disabled = !canAddEntrada;
+            // O botão de Pausa será usado para Início ou Fim, dependendo do estado
+            document.getElementById('btn-manual-add-pause').disabled = !canAddPausaButton;
+            document.getElementById('btn-manual-add-exit').disabled = !canAddSaida;
+            
+            // NOVO: Regra para Dia Padrão Manual: Só pode se não houver registros
+            // CORREÇÃO: Habilita se o dia NÃO TEM registros (hasAnyRecords é false)
+            const hasAnyRecords = dayData && dayData.records.length > 0;
+            const canAddStandardManual = enableManualAdd && !hasAnyRecords;
+            
+            document.getElementById('btn-manual-add-standard').disabled = !canAddStandardManual;
+            
+            
+            // Atualiza o texto do botão de Pausa para refletir o estado
+            document.getElementById('btn-manual-add-pause').textContent = isBreakStarted && !isBreakFinished ? '+ Pausa Fim' : '+ Pausa Início';
+            
+            // Adiciona aviso visual nos botões de adição manual
+            document.getElementById('btn-manual-add-entry').title = nonWorkingReason ? `Bloqueado: ${nonWorkingReason}` : (canAddEntrada ? '' : 'Entrada já registrada.');
+            document.getElementById('btn-manual-add-pause').title = nonWorkingReason ? `Bloqueado: ${nonWorkingReason}` : (canAddPausaButton ? '' : 'Pausa já completa ou Entrada/Saída pendente.');
+            document.getElementById('btn-manual-add-exit').title = nonWorkingReason ? `Bloqueado: ${nonWorkingReason}` : (canAddSaida ? '' : 'Saída já registrada.');
+            document.getElementById('btn-manual-add-standard').title = nonWorkingReason ? `Bloqueado: ${nonWorkingReason}` : (canAddStandardManual ? '' : 'Registros existentes. Exclua para usar Padrão.');
+        }
+
+
+        function setButtonState(inEnabled, startBreakEnabled, endBreakEnabled, outEnabled, statusText, statusClass) {
+            document.getElementById('btn-clock-in').disabled = !inEnabled;
+            document.getElementById('btn-pause-start').disabled = !startBreakEnabled;
+            document.getElementById('btn-pause-end').disabled = !endBreakEnabled;
+            document.getElementById('btn-clock-out').disabled = !outEnabled;
+
+            // NOVO: Regra para Dia Padrão Rápido: Só pode se não houver registros
+            const dayData = dailyRecordsCache[getTodayDateString()];
+            const hasAnyRecords = dayData && dayData.records.length > 0;
+            const canAddStandardQuick = !isNonWorkingDay(getTodayDateString()) && !hasAnyRecords;
+            document.getElementById('btn-standard-day-quick').disabled = !canAddStandardQuick;
+
+            const status = document.getElementById('current-status');
+            status.textContent = statusText;
+            status.className = `px-3 py-1 rounded-full text-sm font-semibold tracking-wider ${statusClass}`;
+            
+            // Adiciona tooltips (título) nos botões rápidos
+            document.getElementById('btn-clock-in').title = inEnabled ? '' : statusText;
+            document.getElementById('btn-pause-start').title = startBreakEnabled ? '' : statusText;
+            document.getElementById('btn-pause-end').title = endBreakEnabled ? '' : statusText;
+            document.getElementById('btn-clock-out').title = outEnabled ? '' : statusText;
+            document.getElementById('btn-standard-day-quick').title = canAddStandardQuick ? '' : 'Registros existentes ou dia de folga.';
+        }
+
+        function renderRecordsTable(records) {
+            const tableBody = document.getElementById('records-table-body');
+            tableBody.innerHTML = '';
+            dailyRecordsCache = {}; 
+            
+            let cumulativeBankedMs = 0; // Para o Banco de Horas Total (Net)
+            let totalWorkedMsCumulative = 0; // Total Geral Trabalhado
+            let monthlyRegularMs = 0; // Total do Mês Atual (Horas Trabalhadas no Mês para Meta)
+
+            const todayDateString = getTodayDateString();
+            const todayRecord = records.find(r => r.date === todayDateString);
+            const currentMonthYear = todayDateString.substring(0, 7); // YYYY-MM
+
+            if (records.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Nenhum registro encontrado.</td></tr>';
+                setButtonState(true, false, false, false, 'Aguardando Entrada', 'bg-gray-600');
+            }
+
+            // --- Determine Today's Status (for quick buttons) ---
+            const nonWorkingReason = isNonWorkingDay(todayDateString);
+
+            if (nonWorkingReason) {
+                // Se hoje for um dia de folga, bloqueia as ações rápidas
+                setButtonState(false, false, false, false, nonWorkingReason.toUpperCase(), 'bg-primary-accent');
+            } else if (todayRecord) {
+                const { durationString, isClockedIn, isBreak, lastMovement } = calculateDuration(todayRecord.records || []);
+                
+                // NOVO: Verifica se o tipo de registro já existe hoje
+                const existingTypes = new Set(todayRecord.records.map(r => r.type));
+
+                let statusText, statusClass;
+
+                // Regras de Habilitação com base na unicidade de registro
+                const enableIn = !isClockedIn && !isBreak && !existingTypes.has('Entrada');
+                const enableStartBreak = isClockedIn && !isBreak && !existingTypes.has('Pausa Início');
+                const enableEndBreak = isBreak && !existingTypes.has('Pausa Fim');
+                const enableOut = isClockedIn && !isBreak && !existingTypes.has('Saída');
+                
+                if (isBreak) {
+                    statusText = `EM PAUSA (Trab. Total: ${durationString})`;
+                    statusClass = 'bg-yellow-600 text-black';
+                } else if (isClockedIn) {
+                    statusText = `EM SERVIÇO (Trab. Total: ${durationString})`;
+                    statusClass = 'bg-green-600';
+                } else if (lastMovement === 'Saída') {
+                     statusText = `DIA ENCERRADO (Trab. Total: ${durationString})`;
+                     statusClass = 'bg-red-600';
+                } else {
+                    statusText = 'PRONTO PARA ENTRADA';
+                    statusClass = 'bg-gray-600';
+                }
+
+                if (todayRecord.records && todayRecord.records.length > 0) {
+                     const lastMovementTime = formatTime(todayRecord.records[todayRecord.records.length - 1].timestamp);
+                     statusText = `${statusText} | Último Movimento: ${lastMovementTime}`;
+                }
+                
+                setButtonState(enableIn, enableStartBreak, enableEndBreak, enableOut, statusText, statusClass);
+
+            } else {
+                 setButtonState(true, false, false, false, 'PRONTO PARA ENTRADA', 'bg-gray-600');
+            }
+
+            // --- Render Table Rows ---
+            records.forEach((dayData, index) => {
+                const date = dayData.date;
+                const dailyRecords = dayData.records || [];
+                const { totalWorkedMs, durationString, isClockedIn, isBreak } = calculateDuration(dailyRecords);
+
+                // --- CÁLCULO DE BH E METAS ---
+                let bankedMs = 0;
+                
+                // 1. Acumula total trabalhado GERAL
+                totalWorkedMsCumulative += totalWorkedMs; 
+
+                // 2. Calcula BH (apenas em dias úteis)
+                const nonWorkingStatus = isNonWorkingDay(date);
+                if (!nonWorkingStatus) { 
+                    // BH = Tempo Trabalhado - Meta Diária (Positivo = Superávit, Negativo = Déficit)
+                    bankedMs = totalWorkedMs - DAILY_BH_THRESHOLD_MS;
+                    
+                    // 3. Contagem de Meta Mensal: Usa Total Geral Trabalhado no Mês (segundo último pedido)
+                    if (date.startsWith(currentMonthYear)) {
+                        monthlyRegularMs += totalWorkedMs; 
+                    }
+                }
+                
+                // 4. Acumula Banco de Horas Total (Net)
+                cumulativeBankedMs += bankedMs; 
+                
+                // Format records into an easy string/list for the table
+                let recordDisplay = [];
+                for (let i = 0; i < dailyRecords.length; i++) {
+                    const record = dailyRecords[i];
+                    let typeClass = '';
+                    if (record.type === 'Entrada') typeClass = 'bg-green-800';
+                    else if (record.type.includes('Saída')) typeClass = 'bg-red-800';
+                    else if (record.type.includes('Pausa')) typeClass = 'bg-yellow-700';
+
+                    recordDisplay.push(`
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded-full ${typeClass} text-white">
+                            ${record.type}: ${formatRecordTime(record.timestamp)}
+                        </span>
+                    `);
+                }
+                const recordString = recordDisplay.join(' ');
+
+                // Cache data for export/details
+                dailyRecordsCache[date] = {
+                    date: date,
+                    records: dailyRecords.map(r => ({ 
+                        ...r, 
+                        timestamp: r.timestamp.toMillis(), // Store as milliseconds in cache
+                        time: formatRecordTime(r.timestamp) 
+                    })), 
+                    totalDuration: durationString,
+                    totalWorkedMs: totalWorkedMs,
+                    dailyBankedMs: bankedMs, 
+                    dailyBankedString: formatMsToDuration(bankedMs) 
+                };
+
+                // Create table row
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-black bg-opacity-30 record-row' : 'bg-black bg-opacity-20 record-row';
+                
+                let dateCellContent = nonWorkingStatus 
+                    ? `<span class="text-primary-accent font-bold">${getBrazilianDateString(date)}</span><br><span class="text-xs text-primary-accent italic">(${nonWorkingStatus})</span>`
+                    : getBrazilianDateString(date);
+                
+                // Cor de destaque da DURAÇÃO (verde se >= 6h, vermelho se < 6h)
+                const durationHighlightColor = bankedMs >= 0 ? 'text-green-400' : 'text-primary-accent';
+                const bankedColor = bankedMs >= 0 ? 'text-green-400' : 'text-primary-accent';
+                const bankedSign = bankedMs >= 0 ? '+' : '';
+
+                const bankedDisplay = (bankedMs !== 0 && !nonWorkingStatus)
+                    ? `<br><span class="text-xs ${bankedColor} font-semibold">(${bankedSign}${formatMsToDuration(Math.abs(bankedMs))} BH)</span>`
+                    : '';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-white">
+                        ${dateCellContent}
+                    </td>
+                    <td class="px-4 py-4 text-sm text-gray-300">
+                        <div class="space-x-2 space-y-1">${recordString}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-bold text-right ${durationHighlightColor} ${isBreak ? 'text-yellow-400' : ''}">
+                        ${durationString} ${isBreak ? '(Em Pausa)' : (isClockedIn ? '(Em curso)' : '')}
+                        ${bankedDisplay}
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right">
+                        <button onclick="openDetailsModal('${date}')" 
+                            class="py-1 px-3 bg-secondary-accent hover:bg-sky-400 text-glass-dark font-semibold rounded-lg text-xs transition">
+                            Ajustar
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // --- DISPLAY CUMULATIVE SUMMARY ---
+            renderSummary(cumulativeBankedMs, totalWorkedMsCumulative, monthlyRegularMs); 
+        }
+        
+        function renderSummary(cumulativeBankedMs, totalWorkedMsCumulative, monthlyRegularMs) {
+            const summaryDiv = document.getElementById('summary-card');
+            if (!summaryDiv) return;
+
+            const goal120h = 120 * 60 * 60 * 1000;
+            
+            // NOVO: Cálculo de Déficit e Compensação
+            
+            // 1. Progresso da Meta (Total trabalhado no mês)
+            const effectiveMonthlyWorkedMs = monthlyRegularMs; 
+
+            // 2. Déficit na Meta (Quanto falta para 120h)
+            const deficitTo120h = Math.max(0, goal120h - effectiveMonthlyWorkedMs);
+            
+            // 3. BH positivo acumulado
+            const compensatableBH = Math.max(0, cumulativeBankedMs);
+            
+            // 4. Quanto BH será usado para COMPENSAR o déficit da meta?
+            // O sistema usa o BH disponível para preencher o déficit da meta (o máximo que o BH pode cobrir do déficit)
+            const compensationUsed = Math.min(deficitTo120h, compensatableBH);
+            
+            // 5. Saldo Líquido do BH (Saldo geral - Compensação usada na meta)
+            // Este é o BH que realmente sobra para o próximo mês ou para folgas, APÓS a meta ser priorizada.
+            const netBHForDisplayMs = cumulativeBankedMs - compensationUsed;
+
+            // --- DISPLAY DOS VALORES ---
+
+            const totalBankedString = formatMsToDuration(netBHForDisplayMs); // NOVO BH PARA DISPLAY
+            const bankedColor = netBHForDisplayMs >= 0 ? 'text-green-400' : 'text-primary-accent';
+            
+            const totalWorkedString = formatMsToDuration(totalWorkedMsCumulative);
+
+            // --- Lógica da Meta Mensal Graduada (cores baseadas no effectiveMonthlyWorkedMs) ---
+            const goal30h = 30 * 60 * 60 * 1000;
+            const goal60h = 60 * 60 * 60 * 1000;
+            const goal90h = 90 * 60 * 60 * 1000;
+
+            let currentGoal = null;
+            let monthlyColor = 'text-goal-red'; // Vermelho (Padrão)
+            let monthlyIndicator = 'Abaixo de 30h';
+            
+            // Usa effectiveMonthlyWorkedMs para comparação
+            if (effectiveMonthlyWorkedMs >= goal120h) {
+                monthlyColor = 'text-goal-green';
+                monthlyIndicator = '✅ Meta Mensal (120h) Atingida!';
+                currentGoal = '120h';
+            } else if (effectiveMonthlyWorkedMs >= goal90h) {
+                monthlyColor = 'text-goal-blue';
+                monthlyIndicator = 'Rumo a 120h (90h Atingida)';
+                currentGoal = '90h';
+            } else if (effectiveMonthlyWorkedMs >= goal60h) {
+                monthlyColor = 'text-goal-orange';
+                monthlyIndicator = 'Rumo a 90h (60h Atingida)';
+                currentGoal = '60h';
+            } else if (effectiveMonthlyWorkedMs >= goal30h) {
+                monthlyColor = 'text-goal-yellow';
+                monthlyIndicator = 'Rumo a 60h (30h Atingida)';
+                currentGoal = '30h';
+            }
+            
+            // Display o total de horas regulares acumuladas (monthlyRegularMs). A cor indica o progresso efetivo.
+            const monthlyWorkedString = formatMsToDuration(monthlyRegularMs);
+
+            // --- Verificação de Conquista e Confetes ---
+            if (currentGoal && !achievedGoals[currentGoal]) {
+                achievedGoals[currentGoal] = true;
+                showConfettiAndReward(currentGoal);
+            }
+            
+            // Novo elemento para mostrar detalhes da compensação
+            let compensationDetails = '';
+            if (compensationUsed > 0) {
+                compensationDetails = `<span class="text-xs text-green-400 block">${formatMsToDuration(compensationUsed)} BH usado para meta.</span>`;
+            }
+
+            // Atualiza a inserção HTML no renderSummary
+            summaryDiv.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-xl font-bold mb-2">Resumo de Horas Acumuladas</h3>
+                        <p class="text-sm text-gray-400">BH é o superávit/déficit em relação à meta diária de 6h.</p>
+                    </div>
+                    <!-- Botão Calendário MOVIDO AQUI -->
+                    <button onclick="openCalendarModal()"
+                        class="py-2 px-4 bg-secondary-accent hover:bg-sky-400 text-glass-dark font-semibold rounded-xl transition duration-200 flex items-center hover:scale-[1.05] focus:ring-4 focus:ring-secondary-accent/50">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Calendário
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-700 pt-4">
+                    
+                    <!-- 1. Banco de Horas Total (BH LÍQUIDO) -->
+                    <div class="bg-black bg-opacity-30 p-4 rounded-xl border border-glass-border">
+                        <p class="text-xl sm:text-3xl font-extrabold ${bankedColor}">
+                            ${totalBankedString}
+                        </p>
+                        <span class="text-xs text-gray-500">BH Líquido Acumulado (Após Compensação de Metas)</span>
+                    </div>
+
+                    <!-- 2. Horas Trabalhadas (Geral) -->
+                    <div class="bg-black bg-opacity-30 p-4 rounded-xl border border-glass-border">
+                        <p class="text-xl sm:text-3xl font-extrabold text-secondary-accent">
+                            ${totalWorkedString}
+                        </p>
+                        <span class="text-xs text-gray-500">Total Geral Trabalhado (Todos os Registros)</span>
+                    </div>
+
+                    <!-- 3. Meta Mensal Graduada (COMPENSADA) -->
+                    <div class="bg-black bg-opacity-30 p-4 rounded-xl border border-glass-border">
+                        <p class="text-xl sm:text-3xl font-extrabold ${monthlyColor}">
+                            ${monthlyWorkedString}
+                        </p>
+                        <span class="text-xs text-gray-500">Total de Horas no Mês (Meta Final: 120h)</span>
+                        ${compensationDetails}
+                        <span class="text-xs ${monthlyColor} block">${monthlyIndicator}</span>
+                    </div>
+
+                </div>
+            `;
+        }
+        
+        // --- FUNÇÕES DE REGISTRO PADRÃO ---
+
+        // Função auxiliar para registrar movimentos de um dia padrão
+        async function recordStandardDayMovements(dateString) {
+             if (!isAuthReady || !userId) {
+                showMessage("Aguardando autenticação...", true);
+                return false;
+            }
+            
+            const recordRef = doc(db, 'artifacts', appId, 'users', userId, 'time_records', dateString);
+            
+            const movements = [
+                { type: 'Entrada', time: '08:00' },
+                { type: 'Pausa Início', time: '12:00' },
+                { type: 'Pausa Fim', time: '13:00' },
+                { type: 'Saída', time: '15:00' },
+            ];
+            
+            const recordsToAdd = movements.map(m => ({
+                type: m.type,
+                timestamp: Timestamp.fromDate(new Date(`${dateString}T${m.time}:00`))
+            }));
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const docSnapshot = await transaction.get(recordRef);
+                    let dailyRecords = docSnapshot.exists() ? (docSnapshot.data().records || []) : [];
+                    
+                    if (dailyRecords.length > 0) {
+                        throw new Error("Já existem registros para este dia. Exclua-os primeiro.");
+                    }
+                    
+                    dailyRecords = recordsToAdd;
+
+                    transaction.set(recordRef, { date: dateString, records: dailyRecords });
+                });
+
+                showMessage(`Dia Padrão (08:00 - 15:00) registrado com sucesso em ${getBrazilianDateString(dateString)}!`);
+                
+                // Avança a data
+                const nextDate = getNextWorkingDay(dateString);
+                setTimeout(() => {
+                    selectedDate = nextDate;
+                    document.getElementById('manual-date-picker').value = selectedDate;
+                    updateManualActions();
+                }, 500);
+
+                return true;
+
+            } catch (e) {
+                console.error("Erro ao registrar Dia Padrão:", e);
+                const errorMsg = e.message.includes('já existem') ? e.message : "Erro ao salvar o registro padrão. Tente novamente.";
+                showMessage(errorMsg, true);
+                return false;
+            }
+        }
+        
+        // Ação Rápida: Dia Padrão (HOJE)
+        async function addStandardDayQuick() {
+            const todayDate = getTodayDateString();
+            const nonWorkingReason = isNonWorkingDay(todayDate);
+            
+            if (nonWorkingReason) {
+                showMessage(`Bloqueado: ${nonWorkingReason}.`, true);
+                return;
+            }
+            
+            // Desativa os botões enquanto processa
+            setButtonState(false, false, false, false, 'Processando Dia Padrão...', 'bg-gray-700'); 
+            
+            await recordStandardDayMovements(todayDate);
+            
+            // A função recordEntryQuick/Quick não precisa de reativação de botões explícita
+            // porque o onSnapshot faz isso no final do processo.
+        }
+
+        // Ação Manual: Dia Padrão (Data Selecionada)
+        async function addStandardDayManual() {
+            const dateString = selectedDate;
+            const nonWorkingReason = isNonWorkingDay(dateString);
+            
+            if (nonWorkingReason) {
+                 showMessage(`Bloqueado: ${nonWorkingReason}.`, true);
+                 return;
+            }
+            
+            // 1. UI LOCK: Desabilita o botão para evitar cliques duplicados antes da transação
+            const btn = document.getElementById('btn-manual-add-standard');
+            btn.disabled = true;
+            
+            // 2. Tenta registrar
+            const success = await recordStandardDayMovements(dateString);
+            
+            // 3. UI UNLOCK/UPDATE: Se a transação falhou (e.g., porque o registro já existe), re-habilita para permitir correção.
+            if (!success) {
+                 btn.disabled = false;
+            }
+            // A atualização do estado final (se sucesso) é feita pelo onSnapshot.
+        }
+
+        // --- FIREBASE WRITE LOGIC (Auto, Manual, Edit, Delete) ---
+
+        async function recordEntryQuick(type) {
+            // FIX: Desabilita todos os botões imediatamente para prevenir double-click/race condition
+            setButtonState(false, false, false, false, 'Processando...', 'bg-gray-700'); 
+            
+            const todayDate = getTodayDateString();
+            await recordEntry(type, todayDate, null); 
+        }
+        
+        async function recordEntry(type, dateString, timeString = null, originalTimestampMillis = null) {
+            if (!isAuthReady || !userId) {
+                showMessage("Aguardando autenticação...", true);
+                return;
+            }
+
+            // 1. BLINDAGEM DE DIA DE FOLGA: Bloqueia qualquer tentativa de ADICIONAR um novo registro.
+            const nonWorkingReason = isNonWorkingDay(dateString);
+            if (!originalTimestampMillis && nonWorkingReason) {
+                 showMessage(`Não é possível adicionar novos registros em ${nonWorkingReason} (${dateString}).`, true);
+                 return;
+            }
+
+            const recordRef = doc(db, 'artifacts', appId, 'users', userId, 'time_records', dateString);
+            
+            let message = "Registro processado com sucesso!";
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const docSnapshot = await transaction.get(recordRef);
+                    let dailyRecords = docSnapshot.exists() ? (docSnapshot.data().records || []) : [];
+
+                    if (originalTimestampMillis) {
+                        // EDIT OR DELETE OPERATION
+                        
+                        const originalMillis = Number(originalTimestampMillis);
+                        const recordIndex = dailyRecords.findIndex(r => r.timestamp.toMillis() === originalMillis);
+                        
+                        if (recordIndex === -1) {
+                            throw new Error(`Registro original (Millis: ${originalMillis}) não encontrado. Falha na transação de ajuste.`);
+                        }
+
+                        if (type === 'DELETE') {
+                            // DELETE operation
+                            dailyRecords.splice(recordIndex, 1);
+                            message = "Registro excluído com sucesso!";
+                        } else {
+                            // EDIT operation
+                            const newTimestamp = Timestamp.fromDate(new Date(timeString)); 
+                            
+                            // NOVO: Verifica se o novo tipo já existe (exceto o próprio registro que está sendo editado)
+                            const existingRecordOfType = dailyRecords.some((r, i) => i !== recordIndex && r.type === type);
+                            if (existingRecordOfType) {
+                                 throw new Error(`Registro tipo '${type}' já existe para o dia ${dateString}.`);
+                            }
+                            
+                            // NOVO: Validação Saída < Pausa Fim (para edição)
+                            if (type === 'Saída') {
+                                const pausaFim = dailyRecords.find(r => r.type === 'Pausa Fim');
+                                if (pausaFim && newTimestamp.toMillis() <= pausaFim.timestamp.toMillis()) {
+                                    throw new Error("O horário de Saída não pode ser igual ou anterior ao Fim da Pausa.");
+                                }
+                            }
+
+                            dailyRecords[recordIndex] = { type: type, timestamp: newTimestamp };
+                            message = "Registro editado com sucesso!";
+                        }
+                    } else {
+                        // ADD operation (Manual or Quick)
+                        
+                        // NOVO: Verifica se este tipo já existe para o dia
+                        const existingRecordOfType = dailyRecords.some(r => r.type === type);
+                        if (existingRecordOfType) {
+                             throw new Error(`Registro tipo '${type}' já existe para o dia ${dateString}.`);
+                        }
+                        
+                        let newTimestamp;
+                        if (timeString) {
+                            newTimestamp = Timestamp.fromDate(new Date(timeString));
+                        } else {
+                            newTimestamp = Timestamp.now();
+                        }
+                        
+                        // NOVO: Validação Saída < Pausa Fim (para nova adição)
+                        if (type === 'Saída') {
+                            const pausaFim = dailyRecords.find(r => r.type === 'Pausa Fim');
+                            if (pausaFim && newTimestamp.toMillis() <= pausaFim.timestamp.toMillis()) {
+                                throw new Error("O horário de Saída não pode ser igual ou anterior ao Fim da Pausa.");
+                            }
+                        }
+
+                        const newRecord = { type: type, timestamp: newTimestamp };
+                        dailyRecords.push(newRecord);
+                        
+                        // NOVO: Lógica de Avanço Automático de Data após a Saída
+                        if (type === 'Saída') {
+                            const nextDate = getNextWorkingDay(dateString);
+                            // Seta a data global e atualiza o seletor APÓS o sucesso da transação
+                            setTimeout(() => {
+                                selectedDate = nextDate;
+                                document.getElementById('manual-date-picker').value = selectedDate;
+                                updateManualActions(); // Rerender buttons for the new date
+                                showMessage(`Dia encerrado. Data de registro alterada automaticamente para: ${getBrazilianDateString(selectedDate)}.`, false);
+                            }, 500); // Pequeno delay para a mensagem de sucesso aparecer primeiro
+                        }
+                    }
+
+                    dailyRecords.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+
+                    if (dailyRecords.length === 0) {
+                        transaction.delete(recordRef);
+                    } else if (docSnapshot.exists()) {
+                        transaction.update(recordRef, { records: dailyRecords });
+                    } else {
+                        transaction.set(recordRef, { date: dateString, records: dailyRecords });
+                    }
+                });
+
+                showMessage(message);
+                closeTimeInputModal();
+                closeEditRecordModal();
+                // Re-open details modal if it was open for better UX
+                if(document.getElementById('details-modal').classList.contains('visible')) {
+                    openDetailsModal(dateString); 
+                }
+
+            } catch (e) {
+                console.error("Erro na transação de registro:", e);
+                // Extrai a mensagem de erro específica se for a restrição de tipo
+                const errorMsg = e.message.includes('Registro tipo') || e.message.includes('Saída não pode ser') ? e.message : "Erro ao salvar o registro. Tente novamente.";
+                showMessage(errorMsg, true);
+            }
+        }
+        
+        // --- CALENDAR MODAL LOGIC ---
+        
+        function openCalendarModal() {
+            currentCalendarDate = new Date(); // Inicia no mês atual
+            renderCalendar();
+            const modal = document.getElementById('calendar-modal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        }
+
+        function closeCalendarModal() {
+            const modal = document.getElementById('calendar-modal');
+            modal.classList.remove('visible', 'opacity-100');
+            modal.classList.add('invisible', 'opacity-0');
+        }
+
+        function changeCalendarMonth(offset) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const display = document.getElementById('calendar-month-display');
+            const grid = document.getElementById('calendar-grid');
+            
+            const month = currentCalendarDate.getMonth();
+            const year = currentCalendarDate.getFullYear();
+            
+            display.textContent = currentCalendarDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            grid.innerHTML = '';
+
+            const firstDayOfMonth = new Date(year, month, 1);
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+            
+            // Calcula o deslocamento para o primeiro dia da semana (0=Dom, 6=Sáb)
+            let startDay = firstDayOfMonth.getDay(); 
+
+            // Adiciona células vazias para o deslocamento
+            for (let i = 0; i < startDay; i++) {
+                grid.innerHTML += '<div class="p-2"></div>';
+            }
+
+            for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+                const date = new Date(year, month, day);
+                const dateString = getTodayDateString(date);
+                const dayData = dailyRecordsCache[dateString];
+                
+                const nonWorking = isNonWorkingDay(dateString);
+                let dayClass = 'p-2 rounded-lg font-medium text-white transition cursor-pointer hover:bg-black hover:bg-opacity-50';
+                let indicator = ''; // Placeholder para o ícone
+                let tooltip = '';
+                
+                const isToday = dateString === getTodayDateString();
+                
+                if (nonWorking) {
+                    dayClass += ' text-primary-accent bg-black bg-opacity-30 border border-primary-accent/50';
+                    indicator = '<span class="text-xs">📅</span>';
+                    tooltip = nonWorking;
+                } else if (dayData && dayData.totalWorkedMs > 0) {
+                    // Dia útil com registro
+                    
+                    const bankedMs = dayData.dailyBankedMs;
+                    
+                    if (bankedMs >= 0) {
+                         // 6h+ alcançadas (Superávit ou meta atingida)
+                        dayClass += ' bg-green-700 hover:bg-green-600';
+                        tooltip = `Trabalhado: ${dayData.totalDuration} (BH: +${dayData.dailyBankedString})`;
+                    } else {
+                         // Déficit (< 6h)
+                        dayClass += ' bg-primary-accent/70 hover:bg-primary-accent';
+                        tooltip = `Trabalhado: ${dayData.totalDuration} (Déficit: ${dayData.dailyBankedString})`;
+                    }
+
+                    // Verifica se houve pausa não registrada
+                    const types = new Set(dayData.records.map(r => r.type));
+                    if (types.has('Entrada') && !types.has('Saída')) {
+                        indicator = '<span class="text-xs">...</span>';
+                    } else if (types.has('Entrada') && types.has('Saída') && (!types.has('Pausa Início') || !types.has('Pausa Fim'))) {
+                         indicator = '<span class="text-xs text-yellow-300">☕</span>';
+                    }
+                    
+                } else {
+                    dayClass += ' text-gray-500 hover:bg-black/30';
+                    tooltip = 'Nenhum registro';
+                }
+
+                if (isToday) {
+                    dayClass += ' ring-2 ring-secondary-accent';
+                }
+
+                // NOVO HTML: Usa flexbox para justificar o número (esquerda) e o indicador (direita)
+                grid.innerHTML += `
+                    <div title="${tooltip}" class="${dayClass} flex justify-between items-start h-10 p-2" onclick="document.getElementById('manual-date-picker').value='${dateString}'; updateManualActions(); closeCalendarModal();">
+                        <span class="text-base font-bold">${day}</span>
+                        ${indicator}
+                    </div>
+                `;
+            }
+        }
+        
+        
+        // --- MODAL HANDLERS ---
+
+        function openTimeInputModal(actionType) {
+            const dateDisplay = getBrazilianDateString(selectedDate);
+            let title = '';
+            let typeValue = '';
+            let defaultTime = new Date().toTimeString().slice(0, 5); // Default to current time
+
+            if (actionType === 'Entrada') { 
+                title = 'Adicionar Entrada'; 
+                typeValue = 'Entrada'; 
+                defaultTime = '08:00'; // Preset 8 AM
+            }
+            else if (actionType === 'Saída') { 
+                title = 'Adicionar Saída'; 
+                typeValue = 'Saída'; 
+                defaultTime = '15:00'; // PRESET: 15:00 (3 PM)
+            }
+            else if (actionType === 'Pausa') { 
+                // Determina se é Pausa Início ou Pausa Fim baseado no estado atual da data selecionada
+                const dayData = dailyRecordsCache[selectedDate];
+                const existingTypes = dayData ? new Set(dayData.records.map(r => r.type)) : new Set();
+                const isBreakStarted = existingTypes.has('Pausa Início');
+                const isBreakFinished = existingTypes.has('Pausa Fim');
+                
+                if (isBreakStarted && !isBreakFinished) {
+                     title = 'Adicionar Pausa Fim'; 
+                     typeValue = 'Pausa Fim';
+                     defaultTime = '13:00'; // PRESET: 13:00 (1 PM)
+                } else {
+                     title = 'Adicionar Pausa Início'; 
+                     typeValue = 'Pausa Início';
+                     defaultTime = '12:00'; // PRESET: 12:00 (12 PM)
+                }
+            }
+
+
+            document.getElementById('time-input-title').textContent = title;
+            document.getElementById('time-input-date-display').textContent = `Data Selecionada: ${dateDisplay}`;
+            document.getElementById('time-input-type').value = typeValue;
+            document.getElementById('time-input-field').value = defaultTime;
+            
+            const modal = document.getElementById('time-input-modal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        }
+
+        function closeTimeInputModal() {
+            const modal = document.getElementById('time-input-modal');
+            modal.classList.remove('visible', 'opacity-100');
+            modal.classList.add('invisible', 'opacity-0');
+        }
+
+        function handleTimeInput(event) {
+            event.preventDefault();
+            const type = document.getElementById('time-input-type').value;
+            const time = document.getElementById('time-input-field').value;
+            
+            // Combine selectedDate (YYYY-MM-DD) and time (HH:MM) into a datetime string
+            const datetimeLocal = `${selectedDate}T${time}`;
+
+            recordEntry(type, selectedDate, datetimeLocal);
+        }
+        
+        function openDetailsModal(dateString) {
+            const data = dailyRecordsCache[dateString];
+            if (!data) {
+                showMessage(`Nenhum registro encontrado para ${getBrazilianDateString(dateString)}.`, true);
+                return;
+            }
+            
+            // Convert cached records back to objects containing Timestamp for display/manipulation
+            const records = data.records.map(r => ({ 
+                ...r, 
+                timestamp: Timestamp.fromMillis(r.timestamp) 
+            }));
+            
+            currentDayRecords[dateString] = { records }; 
+
+            document.getElementById('details-modal-date').textContent = getBrazilianDateString(dateString);
+            document.getElementById('details-modal').dataset.date = dateString; // Set data attribute for delete day button
+            const contentDiv = document.getElementById('details-modal-content');
+            contentDiv.innerHTML = '';
+
+            records.sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis()); 
+
+            records.forEach((record, index) => {
+                let typeClass = '';
+                if (record.type === 'Entrada') typeClass = 'bg-green-800 text-white';
+                else if (record.type.includes('Saída')) typeClass = 'bg-red-800 text-white';
+                else if (record.type.includes('Pausa')) typeClass = 'bg-yellow-700 text-white';
+                
+                const originalTimestampMillis = record.timestamp.toMillis();
+                
+                contentDiv.innerHTML += `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-black bg-opacity-30 border border-gray-700">
+                        <div>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-lg ${typeClass}">
+                                ${record.type}
+                            </span>
+                            <span class="text-white text-lg ml-3 font-mono">
+                                ${formatRecordTime(record.timestamp)}
+                            </span>
+                        </div>
+                        <div class="space-x-2">
+                            <button onclick="openEditRecordModal('${dateString}', ${originalTimestampMillis}, '${record.type}')"
+                                class="p-2 bg-blue-600 hover:bg-blue-700 rounded-full text-white text-xs transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="deleteRecord('${dateString}', ${originalTimestampMillis})"
+                                class="p-2 bg-red-600 hover:bg-red-700 rounded-full text-white text-xs transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const modal = document.getElementById('details-modal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        }
+        
+        function closeDetailsModal() {
+            const modal = document.getElementById('details-modal');
+            modal.classList.remove('visible', 'opacity-100');
+            modal.classList.add('invisible', 'opacity-0');
+        }
+        
+        function openEditRecordModal(dateString, originalTimestampMillis, currentType) {
+            closeDetailsModal(); 
+            
+            const originalTimestamp = Timestamp.fromMillis(originalTimestampMillis);
+            
+            document.getElementById('edit-record-date').value = dateString;
+            document.getElementById('edit-original-timestamp').value = originalTimestampMillis;
+            
+            document.getElementById('edit-type').value = currentType;
+            document.getElementById('edit-datetime').value = formatDateTimeLocal(originalTimestamp);
+            
+            const modal = document.getElementById('edit-record-modal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        }
+        
+        function closeEditRecordModal() {
+            const modal = document.getElementById('edit-record-modal');
+            modal.classList.remove('visible', 'opacity-100');
+            modal.classList.add('invisible', 'opacity-0');
+        }
+        
+        async function handleEditRecord(event) {
+            event.preventDefault();
+            
+            const dateString = document.getElementById('edit-record-date').value;
+            const originalTimestampMillis = document.getElementById('edit-original-timestamp').value;
+            const type = document.getElementById('edit-type').value;
+            const datetimeLocal = document.getElementById('edit-datetime').value; // Contains the NEW date and time
+            
+            const newDate = new Date(datetimeLocal);
+            
+            if (getTodayDateString(newDate) !== dateString) {
+                showMessage("A edição de data não é permitida. Exclua o registro e adicione um novo na data correta.", true);
+                return;
+            }
+            
+            // Use datetimeLocal as the timeString (3rd argument) for the EDIT operation
+            await recordEntry(type, dateString, datetimeLocal, originalTimestampMillis); 
+        }
+
+        async function deleteRecord(dateString, originalTimestampMillis) {
+            await recordEntry('DELETE', dateString, null, originalTimestampMillis); 
+        }
+        
+        // --- FEATURE: DELETE ALL DAY RECORDS ---
+        async function deleteAllDayRecords(dateString) {
+            if (!isAuthReady || !userId) {
+                showMessage("Aguardando autenticação...", true);
+                return;
+            }
+
+            const recordRef = doc(db, 'artifacts', appId, 'users', userId, 'time_records', dateString);
+            
+            try {
+                await deleteDoc(recordRef);
+
+                showMessage(`Todos os registros para ${getBrazilianDateString(dateString)} foram excluídos com sucesso!`);
+                closeDetailsModal();
+            } catch (e) {
+                console.error("Erro ao excluir todos os registros do dia:", e);
+                showMessage("Erro ao tentar excluir os registros.", true);
+            }
+        }
+
+        function deleteAllDayRecordsPrompt(dateString) {
+            deleteAllDayRecords(dateString);
+        }
+
+        // --- TRANSITION MODAL HANDLERS ---
+        
+        function openMonthlyReportModal(previousMonthYear) {
+            const monthName = new Date(previousMonthYear + '-01T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            document.getElementById('monthly-report-message').innerHTML = `O mês de ${monthName} foi encerrado. Gostaria de gerar o relatório de registro de ponto antes de reiniciar as metas?`;
+            
+            const modal = document.getElementById('monthly-report-modal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        }
+        
+        function closeMonthlyReportModal() {
+             const modal = document.getElementById('monthly-report-modal');
+             modal.classList.remove('visible', 'opacity-100');
+             modal.classList.add('invisible', 'opacity-0');
+        }
+
+        function handleMonthlyReportSkip() {
+            closeMonthlyReportModal();
+            // --- CRUCIAL: Reinicia a meta e zera o rastreamento do mês anterior ---
+            resetAchievedGoals();
+            sessionStorage.setItem('lastReportedMonth', getTodayDateString().substring(0, 7)); // Marca o mês atual como 'reportado'
+            showMessage(`Metas reiniciadas para o novo mês.`, false);
+        }
+
+        function handleMonthlyReportGenerate() {
+            closeMonthlyReportModal();
+            
+            // Pega o mês anterior (que acabamos de sair)
+            const previousMonthYear = sessionStorage.getItem('previousMonthYear');
+
+            // Filtra os dados apenas para o mês anterior
+            const datesToExport = Object.keys(dailyRecordsCache)
+                .filter(date => date.startsWith(previousMonthYear));
+            
+            if (datesToExport.length > 0) {
+                 // GERA UM RELATÓRIO PDF com o range de datas
+                 const pdfFileBlock = generatePDFReport(datesToExport);
+                 if (pdfFileBlock) {
+                    console.log(pdfFileBlock);
+                    showMessage(`Relatório PDF do mês de ${previousMonthYear} gerado! Metas reiniciadas.`, false);
+                 } else {
+                     showMessage("Erro ao gerar relatório.", true);
+                 }
+            } else {
+                 showMessage("Nenhum dado encontrado para gerar o relatório do mês anterior.", false);
+            }
+            
+            // --- CRUCIAL: Reinicia a meta e zera o rastreamento do mês anterior ---
+            resetAchievedGoals();
+            sessionStorage.setItem('lastReportedMonth', getTodayDateString().substring(0, 7)); // Marca o mês atual como 'reportado'
+        }
+        
+        function resetAchievedGoals() {
+            achievedGoals = {
+                '30h': false,
+                '60h': false,
+                '90h': false,
+                '120h': false
+            };
+            sessionStorage.setItem('achievedGoals', JSON.stringify(achievedGoals));
+            // O monthlyRegularMs será zerado automaticamente no próximo renderRecordsTable
+        }
+
+        // --- EXPORT MODALS AND LOGIC ---
+
+        function openExportModal() {
+            const modal = document.getElementById('export-modal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('export-modal');
+            modal.classList.remove('visible', 'opacity-100');
+            modal.classList.add('invisible', 'opacity-0');
+        }
+
+        function exportToCSVAndClose() {
+            closeExportModal();
+            exportToCSV();
+        }
+        
+        function generatePDFReportAndClose() {
+            closeExportModal();
+            const pdfFileBlock = generatePDFReport();
+            if (pdfFileBlock) {
+                // This console.log triggers the platform to generate the file
+                console.log(pdfFileBlock);
+            }
+        }
+        
+        function exportToRTFAndClose() {
+            closeExportModal();
+            exportToRTF();
+        }
+
+        function exportToCSV() {
+            // 1. Filter to include only WORKING DAYS
+            const sortedDates = Object.keys(dailyRecordsCache)
+                .sort((a, b) => new Date(a) - new Date(b))
+                .filter(date => !isNonWorkingDay(date)); // Only working days
+
+            if (sortedDates.length === 0) {
+                showMessage("Nenhum dado de dia útil para exportar.", true);
+                return;
+            }
+
+            // 2. Define FIXED and CLEAN headers for a spreadsheet structure
+            const headers = [
+                'Data (DD/MM/AAAA)', 
+                'Dia da Semana', 
+                'Entrada', 
+                'Pausa Início', 
+                'Pausa Fim', 
+                'Saída', 
+                'Tempo Total Trabalhado (H:M)', 
+                'Banco de Horas Diário (+/- H:M)'
+            ];
+            
+            let csv = headers.join(';') + '\n';
+
+            for (const date of sortedDates) {
+                const dayData = dailyRecordsCache[date];
+                const dateObj = new Date(date);
+                // Use 'long' weekday name for clarity
+                const dayOfWeek = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+
+                // Map movements to specific time slots
+                const movements = {};
+                dayData.records.forEach(r => {
+                    // r.time is 'HH:MM' (formatRecordTime)
+                    movements[r.type] = r.time;
+                });
+                
+                // Clean up duration formats (Hh Mm -> H:M)
+                const formatDurationForCSV = (durationString) => {
+                    // Removes 'h ', 'm' and converts ' ' to ':'
+                    return durationString.replace('h ', ':').replace('m', '').trim();
+                };
+
+                const workedDuration = formatMsToDurationClean(dayData.totalWorkedMs);
+                const bankedDuration = formatMsToDurationClean(dayData.dailyBankedMs);
+
+                let row = [
+                    `"${dateObj.toLocaleDateString('pt-BR')}"`, 
+                    `"${dayOfWeek}"`, 
+                    `"${movements['Entrada'] || ''}"`, 
+                    `"${movements['Pausa Início'] || ''}"`, 
+                    `"${movements['Pausa Fim'] || ''}"`, 
+                    `"${movements['Saída'] || ''}"`, 
+                    `"${workedDuration}"`, 
+                    `"${bankedDuration}"` 
+                ]; 
+
+                csv += row.join(';') + '\n';
+            }
+
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }); 
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pointfull_ponto_dias_uteis_${getTodayDateString()}.csv`);
+            a.style.visibility = 'hidden';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showMessage("Planilha CSV (Excel) gerada com sucesso! Contém apenas dias úteis e está organizada em colunas.");
+        }
+        
+        function exportToRTF() {
+            if (Object.keys(dailyRecordsCache).length === 0) {
+                showMessage("Nenhum dado para exportar.", true);
+                return;
+            }
+
+            const sortedDates = Object.keys(dailyRecordsCache).sort((a, b) => new Date(a) - new Date(b));
+            let rtfContent = '';
+
+            for (const date of sortedDates) {
+                const dayData = dailyRecordsCache[date];
+                const dateString = new Date(dayData.date).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+                const duration = dayData.totalDuration;
+                const banked = dayData.dailyBankedString; // NOVO CAMPO BH
+
+                let movements = dayData.records.map(r => {
+                    // Use RTF commands for styling
+                    return `{\\b ${r.type}} (\\i ${r.time})\\par`;
+                }).join('');
+
+                // RTF section for a single day
+                rtfContent += `
+{\\pard\\sa200\\sl276\\slmult1\\b\\fs28\\qc Data: ${dateString}\\par}
+{\\pard\\sa200\\sl276\\slmult1\\b\\fs24 Tempo Total Trabalhado: {\\b\\cf1 ${duration}}\\par}
+{\\pard\\sa200\\sl276\\slmult1\\b\\fs24 Banco de Horas Diário: {\\b\\cf1 ${banked}}\\par}
+{\\pard\\sa100\\sl240\\slmult1\\b\\fs22 Movimentos:\\par}
+{\\pard\\sa100\\sl240\\slmult1\\fs22 ${movements}\\par}
+{\\pard\\sa200\\sl276\\slmult1\\par}
+`;
+            }
+
+            // RTF Header and Footer (Minimalist)
+            const rtfDocument = `
+{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0 Inter;}}
+{\\colortbl ;\\red255\\green77\\blue77;} % \\cf1 accent red color
+
+\\pard\\sa200\\sl276\\slmult1\\f0\\fs20
+{\\b\\fs40\\qc\\cf1 POINTFULL - RELATÓRIO DE REGISTRO DE PONTO}\\par
+{\\b\\fs20\\qc Exportado em: ${new Date().toLocaleDateString('pt-BR')} | Período: ${getBrazilianDateString(sortedDates[0])} a ${getBrazilianDateString(sortedDates[sortedDates.length - 1])}\\par}
+\\par
+
+${rtfContent}
+
+\\par
+{\\i\\fs16\\qc Este documento foi gerado automaticamente pelo Sistema Pointfull.}\\par
+}
+`;
+
+            const blob = new Blob([rtfDocument], { type: 'application/rtf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `pointfull_relatorio_word_${getTodayDateString()}.rtf`);
+            a.style.visibility = 'hidden';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showMessage("Relatório DOC (RTF) gerado com sucesso! Arquivo compatível com Word/Google Docs.");
+        }
+
+
+        function generatePDFReport(datesToExport = null) {
+            
+            const allDates = Object.keys(dailyRecordsCache).sort((a, b) => new Date(a) - new Date(b));
+            let finalDates;
+
+            if (datesToExport) {
+                finalDates = datesToExport.sort((a, b) => new Date(a) - new Date(b));
+            } else {
+                finalDates = allDates;
+            }
+            
+            if (finalDates.length === 0) {
+                showMessage("Nenhum dado para gerar relatório PDF.", true);
+                return;
+            }
+
+            let tableRows = '';
+            
+            for (const date of finalDates) {
+                const dayData = dailyRecordsCache[date];
+                if (!dayData) continue; // Skip if data is missing after filtering/selecting
+                
+                const dateString = new Date(dayData.date).toLocaleDateString('pt-BR');
+                const duration = dayData.totalDuration;
+                const banked = dayData.dailyBankedString; // NOVO CAMPO BH
+                
+                let movements = dayData.records.map(r => {
+                    let style = '';
+                    if (r.type.includes('Entrada')) style = '\\textbf{\\color{green!60!black}';
+                    else if (r.type.includes('Saída')) style = '\\textbf{\\color{red!60!black}';
+                    else if (r.type.includes('Pausa')) style = '\\textbf{\\color{orange!80!black}';
+                    
+                    return `${style}${r.type}} (\\textit{${r.time}})`;
+                }).join(' \\newline ');
+                
+                const nonWorkingStatus = isNonWorkingDay(date);
+                let dateCellContent = `\\textbf{${dateString}}`;
+                if (nonWorkingStatus) {
+                    dateCellContent = `\\color{accentred} ${dateCellContent} \\newline \\fontsize{7}{9}\\selectfont (${nonWorkingStatus})`;
+                }
+                
+                // Formata a duração e BH na mesma célula
+                const durationCellContent = `
+                    \\Large \\color{accentred} \\textbf{${duration}} \\newline 
+                    \\fontsize{9}{11}\\selectfont BH Diário: \\textbf{${banked}}
+                `;
+
+                tableRows += `${dateCellContent} & ${movements} & ${durationCellContent} \\\\ \\hline \n`;
+            }
+
+            const latexContent = `
+\\documentclass[10pt, a4paper]{article}
+\\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=1.5cm, right=1.5cm]{geometry}
+\\usepackage{fontspec}
+\\usepackage[brazilian, bidi=basic, provide=*]{babel}
+\\usepackage[table]{xcolor}
+\\usepackage{hhline}
+\\usepackage{booktabs}
+\\usepackage{multirow}
+\\usepackage{array}
+
+\\babelprovide[import, onchar=ids fonts]{brazilian}
+\\babelprovide[import, onchar=ids fonts]{english}
+
+\\babelfont{rm}{Noto Sans}
+
+% Cores para Estilização (Baseado no Tailwind/Theme)
+\\definecolor{darkbg}{RGB}{15, 23, 42}
+\\definecolor{headerbg}{RGB}{30, 41, 59} % Cor de fundo do cabeçalho da tabela
+\\definecolor{accentred}{RGB}{255, 77, 77} % primary-accent: FF4D4D
+
+\\pagestyle{empty}
+
+\begin{document}
+
+\\begin{center}
+    \\fcolorbox{darkbg}{white}{\\rule{0pt}{1pt}\\parbox{18cm}{\\centering
+        \\fontsize{20}{24}\\selectfont\\textbf{\\color{darkbg} RELATÓRIO OFICIAL DE PONTO POINTFULL} \\\\
+        \\fontsize{12}{14}\\selectfont\\textit{\\color{headerbg} Exportado em: ${new Date().toLocaleDateString('pt-BR')} | Período: ${getBrazilianDateString(finalDates[0])} a ${getBrazilianDateString(finalDates[finalDates.length - 1])}}
+    }}
+\\end{center}
+
+\\vspace{0.5cm}
+
+\\begin{center}
+\\begin{tabular}{|>{\\centering\\arraybackslash}p{2.5cm}|p{8.5cm}|>{\\raggedleft\\arraybackslash}p{4cm}|}
+    \\hline
+    \\rowcolor{headerbg}
+    \\textbf{\\color{white} DATA} & \\textbf{\\color{white} DETALHES DOS MOVIMENTOS} & \textbf{\\color{white} TEMPO TRABALHADO (incl. BH)} \\\\
+    \\hhline{|=|=|=|}
+    ${tableRows}
+\\end{tabular}
+\\end{center}
+
+\\vfill
+
+\\begin{flushright}
+    \\textit{\\tiny Este documento foi gerado automaticamente pelo Sistema Pointfull. Confirme todos os dados.}
+\\end{flushright}
+
+\\end{document}
+            `;
+            
+            showMessage("Relatório PDF (LaTeX) gerado com sucesso. Clique em 'Preview' para visualizar.", false);
+            
+            const fileName = `Pointfull_Relatorio_Ponto_${getTodayDateString()}`;
+            
+            // This structure returns the string containing the file block, which is the fix for the PDF export issue.
+            return (
+`\`\`\`latex:Relatório Pointfull Estilizado:${fileName}.tex
+${latexContent.trim()}
+\`\`\`eof`
+            );
+        }
+        
+        // --- START ---
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
